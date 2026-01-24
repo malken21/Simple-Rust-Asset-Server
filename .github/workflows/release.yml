@@ -7,33 +7,50 @@ on:
 
 jobs:
   build:
-    name: Build & Release - ${{ matrix.os }}
+    name: Build & Release - ${{ matrix.asset_name }}
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+        include:
+          - target: x86_64-unknown-linux-gnu
+            asset_name: simple-rust-asset-server-linux-x64
+          - target: x86_64-pc-windows-msvc
+            asset_name: simple-rust-asset-server-windows-x64.exe
+          - target: aarch64-unknown-linux-gnu
+            asset_name: simple-rust-asset-server-linux-arm64
+          - target: aarch64-pc-windows-msvc
+            asset_name: simple-rust-asset-server-windows-arm64.exe
     permissions:
       contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Cross
+        run: |
+          cargo install cross --git https://github.com/cross-rs/cross
+
       - name: Build
-        run: cargo build --release
+        run: cross build --release --target ${{ matrix.target }}
 
       - name: Get Binary Path
         id: bin
         shell: bash
         run: |
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            echo "path=target/release/simple-rust-asset-server.exe" >> $GITHUB_OUTPUT
+          if [[ "${{ matrix.target }}" == *"windows"* ]]; then
+            echo "path=target/${{ matrix.target }}/release/simple-rust-asset-server.exe" >> $GITHUB_OUTPUT
           else
-            echo "path=target/release/simple-rust-asset-server" >> $GITHUB_OUTPUT
+            echo "path=target/${{ matrix.target }}/release/simple-rust-asset-server" >> $GITHUB_OUTPUT
           fi
+
+      - name: Rename Binary for Release
+        shell: bash
+        run: |
+          cp ${{ steps.bin.outputs.path }} ${{ matrix.asset_name }}
 
       - name: Release
         uses: softprops/action-gh-release@v2
         if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{ steps.bin.outputs.path }}
-          generate_release_notes: ${{ matrix.os == 'ubuntu-latest' }}
+          files: ${{ matrix.asset_name }}
+          generate_release_notes: ${{ matrix.target == 'x86_64-unknown-linux-gnu' }}
