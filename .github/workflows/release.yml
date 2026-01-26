@@ -18,6 +18,8 @@ jobs:
             asset_name: simple-rust-asset-server-windows-x64.exe
           - os: ubuntu-24.04-arm
             asset_name: simple-rust-asset-server-linux-arm64
+          - os: windows-11-arm
+            asset_name: simple-rust-asset-server-windows-arm64.exe
     permissions:
       contents: write
     steps:
