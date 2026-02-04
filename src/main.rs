@@ -3,7 +3,7 @@ use axum::{
     response::{Json, IntoResponse},
     routing::post,
     Router,
-    http::StatusCode,
+    http::{StatusCode, HeaderMap},
 };
 use serde_json::json;
 use std::net::SocketAddr;
@@ -42,7 +42,7 @@ async fn main() {
     axum::serve(listener, app).await.unwrap();
 }
 
-async fn upload_handler(mut multipart: Multipart) -> impl IntoResponse {
+async fn upload_handler(headers: HeaderMap, mut multipart: Multipart) -> impl IntoResponse {
     // マルチパートデータを解析してファイルを保存
     while let Some(mut field) = multipart.next_field().await.unwrap_or(None) {
         let name = field.name().unwrap_or("").to_string();
@@ -113,8 +113,14 @@ async fn upload_handler(mut multipart: Multipart) -> impl IntoResponse {
                 }
             }
 
+            // ホスト・ヘッダーからベースURLを取得
+            let host = headers
+                .get("host")
+                .and_then(|h| h.to_str().ok())
+                .unwrap_or("localhost:3000");
+
             // URLを生成して返す
-            let file_url = format!("http://localhost:3000/uploads/{}", unique_name);
+            let file_url = format!("http://{}/uploads/{}", host, unique_name);
             println!("[Asset Server] File Uploaded: {}", file_url);
             return Json(json!({ "url": file_url })).into_response();
         }
