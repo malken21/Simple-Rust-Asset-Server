@@ -1,6 +1,6 @@
 [package]
 name = "simple-rust-asset-server"
-version = "1.0.9"
+version = "1.0.10"
 edition = "2024"
 
 [dependencies]
