@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    name: Build & Release - ${{ matrix.asset_name }}
+    name: Build - ${{ matrix.asset_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -27,8 +27,6 @@ jobs:
           - os: macos-latest
             asset_name: simple-rust-asset-server-macos-arm64
             target: aarch64-apple-darwin
-    permissions:
-      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -65,9 +63,28 @@ jobs:
         run: |
           cp ${{ steps.bin.outputs.path }} ${{ matrix.asset_name }}
 
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset_name }}
+          path: ${{ matrix.asset_name }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
       - name: Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: ${{ matrix.asset_name }}
-          generate_release_notes: ${{ matrix.os == 'ubuntu-latest' }}
+          files: artifacts/*
+          generate_release_notes: true
