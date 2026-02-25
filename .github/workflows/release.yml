@@ -38,6 +38,7 @@ jobs:
         run: rustup target add ${{ matrix.target }}
 
       - name: Build
+        shell: bash
         run: |
           if [[ "${{ matrix.target }}" != "" ]]; then
             cargo build --release --verbose --target ${{ matrix.target }}
