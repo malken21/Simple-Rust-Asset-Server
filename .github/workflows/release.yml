@@ -14,29 +14,49 @@ jobs:
         include:
           - os: ubuntu-latest
             asset_name: simple-rust-asset-server-linux-x64
-          - os: windows-latest
-            asset_name: simple-rust-asset-server-windows-x64.exe
           - os: ubuntu-24.04-arm
             asset_name: simple-rust-asset-server-linux-arm64
-          - os: windows-11-arm
+          - os: windows-latest
+            asset_name: simple-rust-asset-server-windows-x64.exe
+          - os: windows-latest
             asset_name: simple-rust-asset-server-windows-arm64.exe
+            target: aarch64-pc-windows-msvc
+          - os: macos-latest
+            asset_name: simple-rust-asset-server-macos-x64
+            target: x86_64-apple-darwin
+          - os: macos-latest
+            asset_name: simple-rust-asset-server-macos-arm64
+            target: aarch64-apple-darwin
     permissions:
       contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install Rust target
+        if: matrix.target != ''
+        run: rustup target add ${{ matrix.target }}
+
       - name: Build
-        run: cargo build --release --verbose
+        run: |
+          if [[ "${{ matrix.target }}" != "" ]]; then
+            cargo build --release --verbose --target ${{ matrix.target }}
+          else
+            cargo build --release --verbose
+          fi
 
       - name: Get Binary Path
         id: bin
         shell: bash
         run: |
+          TARGET_DIR="target/release"
+          if [[ "${{ matrix.target }}" != "" ]]; then
+            TARGET_DIR="target/${{ matrix.target }}/release"
+          fi
           if [[ "$RUNNER_OS" == "Windows" ]]; then
-            echo "path=target/release/simple-rust-asset-server.exe" >> $GITHUB_OUTPUT
+            echo "path=${TARGET_DIR}/simple-rust-asset-server.exe" >> $GITHUB_OUTPUT
           else
-            echo "path=target/release/simple-rust-asset-server" >> $GITHUB_OUTPUT
+            echo "path=${TARGET_DIR}/simple-rust-asset-server" >> $GITHUB_OUTPUT
           fi
 
       - name: Rename Binary for Release
